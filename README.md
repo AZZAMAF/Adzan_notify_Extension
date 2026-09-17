@@ -1,8 +1,3 @@
-Berikut adalah *template* `README.md` yang profesional untuk repository GitHub Anda. File ini menjelaskan apa aplikasi Anda, teknologi yang digunakan, dan cara menjalankannya secara lengkap.
-
-Silakan buat file baru bernama `README.md` di folder utama `adzan-extension` Anda, lalu *copy-paste* kode di bawah ini:
-
-```markdown
 # 🕌 Adzan & Weather Extension
 
 A lightweight Chrome/Firefox browser extension that provides real-time prayer times and current weather updates. 
