@@ -1,30 +1,46 @@
 from fastapi import FastAPI
-import requests
+from fastapi.middleware.cors import CORSMiddleware
+import requests 
 
-# open the app
 app = FastAPI()
 
-@app.get("/")
-def menu_utama():
-    
-    return {"message": "mantap bro, Server backend lu udh nyala"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/adzan")
-def jadwal_adzan(kota: str = "Jakarta"):
-    
-    url = f"http://api.aladhan.com/v1/timingsByCity?city={kota}&country=Indonesia"
-    
+@app.get("/api/info")
+def get_info(kota: str = "Serang"):
+    # 1. Ambil data Adzan (API Aladhan biasanya stabil)
     try:
-        # Tambahkan timeout=10 agar maksimal nunggu 10 detik
-        response = requests.get(url, timeout=10)
-        data_mentah = response.json()
-        
-        jadwal = data_mentah["data"]["timings"]
-        
-        return {
-            "lokasi": kota,
-            "jadwal_sholat": jadwal
-        }
+        url_adzan = f"https://api.aladhan.com/v1/timingsByCity?city={kota}&country=Indonesia"
+        res_adzan = requests.get(url_adzan, timeout=10).json()
+        jadwal = res_adzan["data"]["timings"]
     except Exception as e:
-        # Kalau gagal/timeout, kasih tau errornya ke browser
-        return {"error": f"Gagal ngambil API: {str(e)}"}
+        return {"error": f"API Adzan lagi bermasalah: {str(e)}"}
+        
+    # 2. Ambil data Cuaca (API wttr.in kadang suka down)
+    cuaca_info = {"suhu_celcius": "N/A", "kondisi": "Gagal ambil cuaca"}
+    try:
+        url_cuaca = f"https://wttr.in/{kota}?format=j1"
+        res_cuaca = requests.get(url_cuaca, timeout=5).json()
+        cuaca_info["suhu_celcius"] = res_cuaca["current_condition"][0]["temp_C"]
+        cuaca_info["kondisi"] = res_cuaca["current_condition"][0]["weatherDesc"][0]["value"]
+    except Exception:
+        # Kalau error, biarin aja (pass). Nanti return tulisan "N/A" di atas
+        pass 
+
+    # 3. Gabungin dan return
+    return {
+        "lokasi": kota,
+        "cuaca": cuaca_info,
+        "jadwal_sholat": {
+            "Subuh": jadwal["Fajr"],
+            "Dzuhur": jadwal["Dhuhr"],
+            "Ashar": jadwal["Asr"],
+            "Maghrib": jadwal["Maghrib"],
+            "Isya": jadwal["Isha"]
+        }
+    }
